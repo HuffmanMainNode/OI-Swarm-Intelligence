@@ -9,22 +9,28 @@ from typing import Any
 
 
 def plan_task(task: dict[str, Any], resources: list[dict[str, Any]], policy: dict[str, Any]) -> dict[str, Any]:
-    """Rank resources by required capability coverage and apply explicit policy gates."""
+    """Rank declared capabilities; deny all resources unless an explicit allowlist is supplied."""
     required = set(task.get("required_capabilities", []))
-    if not required:
-        raise ValueError("task.required_capabilities must be a non-empty list")
+    if not required or not all(isinstance(item, str) and item for item in required):
+        raise ValueError("task.required_capabilities must contain non-empty strings")
 
-    allowed = set(policy.get("allowed_resource_ids", []))
+    allowed_value = policy.get("allowed_resource_ids", [])
+    if not isinstance(allowed_value, list) or not all(isinstance(item, str) and item for item in allowed_value):
+        raise ValueError("policy.allowed_resource_ids must be an array of non-empty strings")
+    allowed = set(allowed_value)
     approval_required = bool(policy.get("human_approval_required", True))
     eligible: list[tuple[int, str]] = []
     rejected: list[dict[str, str]] = []
 
     for resource in resources:
-        resource_id = str(resource.get("id", ""))
-        if not resource_id:
+        if not isinstance(resource, dict):
+            rejected.append({"resource_id": "<invalid>", "reason": "resource must be an object"})
+            continue
+        resource_id = resource.get("id")
+        if not isinstance(resource_id, str) or not resource_id:
             rejected.append({"resource_id": "<missing>", "reason": "missing resource id"})
             continue
-        if allowed and resource_id not in allowed:
+        if resource_id not in allowed:
             rejected.append({"resource_id": resource_id, "reason": "not allowlisted by policy"})
             continue
         capabilities = {
