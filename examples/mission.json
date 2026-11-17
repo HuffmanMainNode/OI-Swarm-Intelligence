@@ -1,0 +1,15 @@
+{
+  "task": {
+    "id": "demo.research-and-verify",
+    "required_capabilities": ["research.search", "evidence.verify"]
+  },
+  "resources": [
+    {"id": "local.researcher", "capabilities": [{"id": "research.search"}, {"id": "summarize"}]},
+    {"id": "local.verifier", "capabilities": [{"id": "evidence.verify"}]},
+    {"id": "unrelated.writer", "capabilities": [{"id": "text.compose"}]}
+  ],
+  "policy": {
+    "allowed_resource_ids": ["local.researcher", "local.verifier"],
+    "human_approval_required": true
+  }
+}
